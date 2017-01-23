@@ -28,18 +28,19 @@ import SocketServer,os.path
 
 # a class for generating and managing header for http response
 class Header():
-    category = ["status","Content-Type"]
+    category = ["status","Location","Content-Type","Content-Length"]
     def __init__(self):
         self.content = {}
 
     def __repr__(self):
         response = "HTTP/1.1 "
         for c in Header.category:
-            if c != "status":
-                response += c
-                response += ": "
-            response += self.content[c]
-            response += "\r\n"
+            if c in self.content.keys():
+                if c != "status":
+                    response += c
+                    response += ": "
+                response += self.content[c]
+                response += "\r\n"
         response += "\r\n"
         return response
 
@@ -77,6 +78,7 @@ class MyWebServer(SocketServer.BaseRequestHandler):
             fp = open(path)
             body = fp.read()
             fp.close()
+            header["Content-Length"] = str(len(body))
 
         # check if the request ask for a dirctory, return index page if exist
         elif os.path.isdir(path) and os.path.isfile(path+"index.html"):
@@ -85,6 +87,12 @@ class MyWebServer(SocketServer.BaseRequestHandler):
             fp = open(path+"index.html")
             body = fp.read()
             fp.close()
+            header["Content-Length"] = str(len(body))
+
+        # check if the request ask for a dirctory with file syntex, redirct it
+        elif os.path.isdir(path+"/"):
+            header["status"] = "302 Found"
+            header["Location"] = self.data.split()[1]+"/"
 
         # otherwise, response 404 Not Found error
         else:
